@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+	<head>
+
+		<meta charset="UTF-8">
+		<meta name="description" content="Meta tags">
+		<meta name="keywords" content="acin,academy,html">
+		<meta http-equiv="X-UA-COMPATIBLE" content="IE=edge">
+		<meta name="author" content="David Camacho">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="styles/gp10.css">
+
+		<title>Arkanoid HTMLcanvas Game</title>
+
+	<style>
+			/*define o padding e margem, e em baixo a cor de fundo e o display do canvas*/
+    	* { padding: 0; margin: 4em; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+
+    </style>
+
+
+
+	</head>
+	<body>
+		<!-- aqui é colocado o tamanho do cavas e o id do mesmo -->
+		<canvas id="myCanvas" width="480" height="520"></canvas>
+
+		<script>
+
+			//Jogo Arkanoid em JS utilizando o HTML canvas
+
+				//aqui vamos buscar o ID Cavas e guardamos numa variavel
+			var canvas = document.getElementById("myCanvas");
+			var ctx = canvas.getContext("2d");
+				//variaveis de posição inicial, tamanho e velocidade da bola
+			var x = canvas.width/2;
+			var y = canvas.height-30;
+			var ballRadius=10;
+			var ballspeed =2;
+			var mx = ballspeed;
+			var my = -ballspeed*2;
+
+				//booleans para o handler das teclas right e left
+			var rightPressed =false;
+			var leftPressed =false;
+
+				// altura, largura, posição inicial, velocidade e ponto central do Paddle
+			var paddleHeight = 10;
+			var paddleWidth =70;
+			var paddleX = (canvas.width-paddleWidth)/2;
+			var paddleMidPoint = paddleWidth/2;
+			var paddleSpeed = 4;
+			var paddleMidPoint = canvas.width-paddleX-paddleWidth/2;
+
+
+				//caracteristicas do array de tijolos a ser criado, estes valores são utilizados no drawtijolos
+			var tijoloRowCount=6;
+			var tijoloColCount=5;
+			var tijoloWidth=75;
+			var tijoloHeight=20;
+			var tijoloPadding=10;
+			var tijoloOffsetTopo=30;
+			var tijoloOffsetEsquerda =30;
+
+				//guardar a pontuação(da destruição dos tijolos)
+			var pontos =0;
+
+				//guardar as tentativas
+			var vidas =3;
+
+				//Array de tijolos e das respectivas caracteristicas(posição e existencia)
+			var tijolos = [];
+
+					//popular o array com dois loops conforme o numero de colunas e linhas. cada tijolo recebe dois indexes, um de lina e um de coluna, que define a sua posição e recebe o status que indica se este deve voltar a ser desenhado ou não no proximo frame (existencia)
+			for(var c=0; c<tijoloColCount;c++){
+				tijolos[c]= [];
+				for(var r=0; r<tijoloRowCount; r++){
+					if(r<2 && c>2 || r<2 && c<2){
+					tijolos[c][r]={x:0, y:0,status:2};
+				}
+				else tijolos[c][r]={x:0, y:0,status:1};
+				}
+			}
+
+
+
+				//Event listeners, ficam à espera de receber o input, tanto do teclado como do rato. Rato por enquanto desativado
+			document.addEventListener("keydown", keyDownHandler, false);
+			document.addEventListener("keyup", keyUpHandler, false);
+			// document.addEventListener("mousemove",mouseHandler,false)
+
+			function drawball(){
+			
+			ctx.beginPath();
+			ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+			ctx.fillStyle = "#000000";
+			ctx.fill();
+			ctx.closePath();	
+			}
+			
+			// detecção de colisão, handling dos pontos e das "vidas" dos bricks
+			function collisionDetection() {
+    			for(var c=0; c<tijoloColCount; c++) {
+        			for(var r=0; r<tijoloRowCount; r++) {
+            			var b = tijolos[c][r];
+            			if(b.status >=1){
+            			if(x>b.x && x<b.x+tijoloWidth && y>b.y && y<b.y+tijoloHeight){
+            				my =-my;
+            				b.status--;
+            				pontos++;
+            			}
+            			}
+        			}
+    			}
+			}
+
+			// deviação da bola conforme a zona que acerta no paddle
+			function PaddleDeviation(){
+				if(x==paddleMidPoint+2 ||x==paddleMidPoint-2){
+					mx=mx*0.2;
+				}
+				else if(x>paddleMidPoint){
+					mx=mx*1.2;
+				}
+				else if(x<paddleMidPoint){
+					mx=mx*-1.1;
+				}
+			}
+
+			//renderização
+			function drawTijolos(){
+    		for(var c=0; c<tijoloColCount; c++) {
+        		for(var r=0; r<tijoloRowCount; r++) {
+        			if(tijolos[c][r].status >=1){
+            		var tijoloX = (c*(tijoloWidth+tijoloPadding))+tijoloOffsetEsquerda;
+            		var tijoloY = (r*(tijoloHeight+tijoloPadding))+tijoloOffsetTopo;
+            		tijolos[c][r].x = tijoloX;
+            		tijolos[c][r].y = tijoloY;
+            		ctx.beginPath();
+            		ctx.rect(tijoloX, tijoloY, tijoloWidth, tijoloHeight);
+
+
+            		if(tijolos[c][r].status >1)ctx.fillStyle = "#993333";
+            		else ctx.fillStyle = "#DD6666";
+
+            		ctx.fill();
+            		ctx.closePath();
+            	}
+        				}
+    				}
+				}
+
+			function drawPontuacao(){
+				ctx.font = "14px BAUHAUS95";
+				ctx.fillStyle="#000000";
+				ctx.fillText("Pontuacao: "+pontos,8,20);
+				ctx.fillStyle="#55dd55";
+				ctx.fillText("Vidas: "+vidas,100,20);
+
+			}
+
+				//função para o controlo do paddle com rato, não utilizado
+			// function mouseHandler(e){
+			// 	var relativeX = e.clientX -canvas.offsetLeft;
+			// 	if(relativeX>0 && relativeX<canvas.width){
+			// 		paddleX= relativeX- paddleWidth/2;
+			// 	}
+			// }
+
+
+			function drawPaddle(){
+				ctx.beginPath();
+    		ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+    		ctx.fillStyle = "#0095DD";
+    		ctx.fill();
+    		ctx.closePath();
+			}
+
+
+			// handling do input do jogador, dependente dos handlers chamados anteriormente
+			function keyDownHandler(e){
+    				if(e.keyCode == 39) {
+       						 rightPressed = true;
+    				}
+    				else if(e.keyCode == 37) {
+        						leftPressed = true;
+    				}
+				}
+
+			function keyUpHandler(e){
+				{
+    				if(e.keyCode == 39) {
+       				 		rightPressed = false;
+    				}
+   					else if(e.keyCode == 37) {
+       						 leftPressed = false;
+    				}
+				}
+			}
+
+
+			function winCondition()  {
+				if(pontos == tijoloRowCount*tijoloColCount+8){
+					alert("Boa, agora vai aprender mais Javascript!");
+					document.location.reload();
+				}
+			}
+
+			// movimento do paddle conforme input
+			function controloPaddle(){
+				if(rightPressed && paddleX < canvas.width-paddleWidth) {
+    						paddleX += paddleSpeed;
+    						paddleMidPoint += paddleSpeed;
+				}
+				else if(leftPressed && paddleX > 0) {
+   						 paddleX -= paddleSpeed;
+   						 paddleMidPoint -= paddleSpeed;
+				}
+			}
+
+			// comportamento da bola conforme colide com os objectos
+			function bounce()
+			{
+			if(x+mx < ballRadius || x+mx > canvas.width-ballRadius)
+				{mx=-mx};
+			if(y+my< ballRadius) {
+				my =- my;
+			}
+			else if(y+my>canvas.height-ballRadius)
+			{
+				if(x > paddleX-paddleWidth && x < paddleX + paddleWidth) 
+				{
+       				 my =-my;
+       				 PaddleDeviation();
+       				 my=my*1.1;
+            		paddleSpeed=paddleSpeed*1.1;
+       				}
+			else{
+    				alert("Life lost");
+    				vidas--;
+    				x = canvas.width/2;
+					y = canvas.height-30;
+					paddleX = (canvas.width-paddleWidth)/2;
+    				gameover();
+    				
+				}
+					}
+			}
+
+
+			function gameover(){
+				if(vidas<1){
+				alert("Game is over mate");
+				document.location.reload();
+			}
+			}
+	
+
+			//loop de jogo.
+			function draw()
+			{
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			drawTijolos();
+			drawball();
+			drawPaddle();
+			controloPaddle();
+			bounce();
+
+			x+=mx;
+			y+=my;
+			collisionDetection();
+			drawPontuacao();
+			requestAnimationFrame(draw);
+			winCondition();
+					
+			}
+			
+			draw();
+			console.log(c);
+
+		</script>
+	</body>
+	</html>
